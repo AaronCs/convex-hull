@@ -1,15 +1,15 @@
-#Johnny Li and Aaron Chan
-#11-1-2018
-#CS 350 Project
+# Johnny Li and Aaron Chan
+# 11-1-2018
+# CS 350 Project
 
-#http://adultstudylife.blogspot.com/2016/06/quick-hull-in-python.html
+# http://adultstudylife.blogspot.com/2016/06/quick-hull-in-python.html
 import matplotlib
 matplotlib.use('TkAgg')
 import numpy
 import pylab
 
 
-def qhull(sample):
+def quickhull(sample):
     link = lambda a, b: numpy.concatenate((a, b[1:]))
     edge = lambda a, b: numpy.concatenate(([a], [b]))
 
