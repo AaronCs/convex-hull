@@ -9,7 +9,7 @@ import numpy
 import pylab
 
 
-def quickhull(sample):
+def quickHull(sample):
     link = lambda a, b: numpy.concatenate((a, b[1:]))
     edge = lambda a, b: numpy.concatenate(([a], [b]))
 
