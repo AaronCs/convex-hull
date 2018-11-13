@@ -45,8 +45,8 @@ def brute_hull(data_set):
 
                 # -2 b/c we ignore the points made by the line.
                 if pos == (len(data_set) - 2) or neg == (len(data_set) - 2):
-                    convex_hull.append(p1)
-                    convex_hull.append(p2)
+                    to_append = (p1, p2)
+                    convex_hull.append(to_append)
     return convex_hull
 
 
@@ -74,14 +74,14 @@ def gen_data(num_points, min, max):
 
 
 def main():
-    data_count = 5
+    data_count = 15
     rand_min, rand_max = 0, 250
-    # data_set = list(gen_data(data_count, rand_min, rand_max))
-    data_set = [(0, 0), (1, 2), (0, 4), (2, 2)]
+    data_set = list(gen_data(data_count, rand_min, rand_max))
+    # data_set = [(0, 0), (1, 2), (0, 4), (2, 2), (10, 10), (15, 2)]
     convex_hull = brute_hull(data_set)
-    print(convex_hull)
     plt.scatter(*zip(*data_set))
-    plt.plot(*zip(*convex_hull))
+    for line in convex_hull:
+        plt.plot(*zip(*line), color="red")
     plt.show()
 
 
