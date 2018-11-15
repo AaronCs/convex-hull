@@ -52,24 +52,32 @@ def brute_hull(data_set):
 
 
 def gift_wrap(data_set):
-    pass
+    convex_hull = []
+
+    # Find leftmost point.
+    leftmost = data_set[0]
+    for point in data_set:
+        if leftmost[0] > point[0]:
+            leftmost = point
+    print(leftmost)
+    return convex_hull
 
 
-def gen_data(num_points, min, max):
+def gen_data(num_points, minimum, maximum):
     """
     :return: randomly generates a point.
     """
     data_set = set()
-    x = randint(min, max)
-    y = randint(min, max)
+    x = randint(minimum, maximum)
+    y = randint(minimum, maximum)
 
     while num_points:
         data_set.add((x, y))
-        x = randint(min, max)
-        y = randint(min, max)
+        x = randint(minimum, maximum)
+        y = randint(minimum, maximum)
         while (x, y) in data_set:
-            x = randint(min, max)
-            y = randint(min, max)
+            x = randint(minimum, maximum)
+            y = randint(minimum, maximum)
         num_points -= 1
     return data_set
 
@@ -78,7 +86,7 @@ def main():
     data_count = 15
     rand_min, rand_max = 0, 250
     # data_set = list(gen_data(data_count, rand_min, rand_max))
-    data_set = [(0, 0), (1, 2), (0, 4), (2, 2), (10, 10), (15, 2)]
+    data_set = [(1, 2), (0, 4), (0, 0), (2, 2), (10, 10), (15, 2)]
 
     iterate_num = 10000
     setup_code = '''
@@ -91,11 +99,13 @@ data_set = list(gen_data(data_count, rand_min, rand_max))
     # times = timeit.repeat("brute_hull(data_set)", setup=setup_code, repeat=10, number=iterate_num)
     # print("Brute hull time: {}".format(min(times)))
 
-    convex_hull = brute_hull(data_set)
+    convex_hull = gift_wrap(data_set)
+    '''
     plt.scatter(*zip(*data_set))
     for line in convex_hull:
         plt.plot(*zip(*line), color="red")
     plt.show()
+    '''
 
 
 if __name__ == "__main__":
