@@ -5,6 +5,7 @@
 
 from random import randint
 import matplotlib.pyplot as plt
+import timeit
 
 
 def brute_hull(data_set):
@@ -76,8 +77,20 @@ def gen_data(num_points, min, max):
 def main():
     data_count = 15
     rand_min, rand_max = 0, 250
-    data_set = list(gen_data(data_count, rand_min, rand_max))
-    # data_set = [(0, 0), (1, 2), (0, 4), (2, 2), (10, 10), (15, 2)]
+    # data_set = list(gen_data(data_count, rand_min, rand_max))
+    data_set = [(0, 0), (1, 2), (0, 4), (2, 2), (10, 10), (15, 2)]
+
+    iterate_num = 10000
+    setup_code = '''
+from __main__ import brute_hull, gen_data
+data_count = 15
+rand_min, rand_max = 0, 250
+data_set = list(gen_data(data_count, rand_min, rand_max))
+    '''
+
+    # times = timeit.repeat("brute_hull(data_set)", setup=setup_code, repeat=10, number=iterate_num)
+    # print("Brute hull time: {}".format(min(times)))
+
     convex_hull = brute_hull(data_set)
     plt.scatter(*zip(*data_set))
     for line in convex_hull:
