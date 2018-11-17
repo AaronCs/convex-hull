@@ -52,15 +52,51 @@ def brute_hull(data_set):
 
 
 def gift_wrap(data_set):
+    # FIXME: Loops on certain points.
     convex_hull = []
 
     # Find leftmost point.
+    current = find_leftmost(data_set)
+    # Pseudo do-while loop
+    i = 0
+    while True:
+        if len(convex_hull) > len(data_set):
+            break
+        convex_hull.append(current)
+        endpoint = data_set[i]
+        if current == endpoint:
+            i += 1
+            endpoint = data_set[i % len(data_set)]
+        for point in data_set:
+            left = is_left(point, current, endpoint)
+            if left == 2:
+                endpoint = point
+        current = endpoint
+        if current == convex_hull[0]:
+            break
+
+    return convex_hull
+
+
+def is_left(to_compare, line_start, line_end):
+    x1, y1 = line_start[0], line_start[1]
+    x2, y2 = line_end[0], line_end[1]
+
+    # value = (x2 - x1)(to_compare[1] - y1) - (to_compare[0] - x1)(y2 - y1)
+
+    position = ((y2 - y1) * (to_compare[0] - x1)) - ((x2 - x1) * (to_compare[1] - y1))
+    if position == 0:
+        return 0
+    return 1 if (position > 0) else 2
+
+
+def find_leftmost(data_set):
     leftmost = data_set[0]
     for point in data_set:
+        # If x coord in leftmost is > x coord of point.
         if leftmost[0] > point[0]:
             leftmost = point
-    print(leftmost)
-    return convex_hull
+    return leftmost
 
 
 def gen_data(num_points, minimum, maximum):
@@ -82,11 +118,30 @@ def gen_data(num_points, minimum, maximum):
     return data_set
 
 
+def gen_gift_wrap_lines(data):
+    '''
+
+    :param data: array of tuples [(x, y), . . .]
+    :return: array of tuples of tuples [[(x1, y1), (x2, y2)], . . .]
+    '''
+    fixed = []
+    data_len = len(data)
+    for i in range(0, data_len):
+        if i < data_len - 1:
+            line = (data[i], data[i + 1])
+        else:
+            # makes it connect back to the first point.
+            line = (data[i], data[0])
+        fixed.append(line)
+    return fixed
+
+
 def main():
-    data_count = 15
-    rand_min, rand_max = 0, 250
-    # data_set = list(gen_data(data_count, rand_min, rand_max))
-    data_set = [(1, 2), (0, 4), (0, 0), (2, 2), (10, 10), (15, 2)]
+    data_count = 150
+    rand_min, rand_max = 0, 100000
+    data_set = list(gen_data(data_count, rand_min, rand_max))
+    # data_set = [(1, 2), (0, 4), (0, 0), (2, 2), (10, 10), (15, 2)]
+    # data_set = [(233, 148), (161, 100), (155, 39), (226, 109), (230, 133)]
 
     iterate_num = 10000
     setup_code = '''
@@ -100,12 +155,16 @@ data_set = list(gen_data(data_count, rand_min, rand_max))
     # print("Brute hull time: {}".format(min(times)))
 
     convex_hull = gift_wrap(data_set)
-    '''
+
+    # print(convex_hull)
+
+    convex_hull = gen_gift_wrap_lines(convex_hull)
+    # print(convex_hull)
+
     plt.scatter(*zip(*data_set))
     for line in convex_hull:
         plt.plot(*zip(*line), color="red")
     plt.show()
-    '''
 
 
 if __name__ == "__main__":
