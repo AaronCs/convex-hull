@@ -5,6 +5,7 @@
 
 from random import randint
 import matplotlib.pyplot as plt
+import math
 import timeit
 
 
@@ -68,7 +69,7 @@ def gift_wrap(data_set):
             i += 1
             endpoint = data_set[i % len(data_set)]
         for point in data_set:
-            left = is_left(point, current, endpoint)
+            left = find_side(point, current, endpoint)
             if left == 2:
                 endpoint = point
         current = endpoint
@@ -78,7 +79,7 @@ def gift_wrap(data_set):
     return convex_hull
 
 
-def is_left(to_compare, line_start, line_end):
+def find_side(to_compare, line_start, line_end):
     x1, y1 = line_start[0], line_start[1]
     x2, y2 = line_end[0], line_end[1]
 
@@ -97,6 +98,15 @@ def find_leftmost(data_set):
         if leftmost[0] > point[0]:
             leftmost = point
     return leftmost
+
+
+def find_rightmost(data_set):
+    rightmost = data_set[0]
+    for point in data_set:
+        # If x coord in rightmost is < x coord of point.
+        if rightmost[0] < point[0]:
+            rightmost = point
+    return rightmost
 
 
 def gen_data(num_points, minimum, maximum):
@@ -136,14 +146,95 @@ def gen_gift_wrap_lines(data):
     return fixed
 
 
+def quickhull(data_set):
+    convex_hull = []
+    leftmost = find_leftmost(data_set)
+    rightmost = find_rightmost(data_set)
+    convex_hull.append(leftmost)
+    convex_hull.append(rightmost)
+    # Split points into upper and lower.
+    upper_hull = []
+    lower_hull = []
+    for point in data_set:
+        if point != leftmost and point != rightmost:
+            side = find_side(point, leftmost, rightmost)
+            if side == 1:
+                lower_hull.append(point)
+            if side == 2:
+                upper_hull.append(point)
+
+    print("UPPER: ", upper_hull)
+    print("LOWER: ", lower_hull)
+    # FIXME: Should lower hull be treated differently?
+    convex_hull = convex_hull + mini_hull(leftmost, rightmost, upper_hull) + mini_hull(leftmost, rightmost, lower_hull)
+
+    return convex_hull
+
+
+def mini_hull(line_start, line_end, data_set):
+    # recursive helper for quickhull
+    if not data_set:
+        return data_set
+    if len(data_set) == 1:
+        return data_set
+    convex_hull = []
+    furthest = data_set[0]
+    # Ensure that furthest does not clash with leftmost or rightmost.
+
+    max_dist = rel_distance(line_start, line_end, furthest)
+    for point in data_set:
+        temp_furthest = rel_distance(line_start, line_end, point)
+        if temp_furthest > max_dist:
+            furthest = point
+            max_dist = temp_furthest
+    convex_hull.append(furthest)
+    left_data = []
+    right_data = []
+
+    if find_side(line_start, line_end, furthest) == 1:
+        # If it's the right-side hull, make sure that it's checking the line made from starting with furthest.
+        for point in data_set:
+            # If point is on the left side from line_start to furthest, add to left hull.
+            if find_side(point, furthest, line_start) == 2:
+                left_data.append(point)
+            elif find_side(point, line_end, furthest) == 2:
+                right_data.append(point)
+    else:
+        for point in data_set:
+            # If point is on the left side from line_start to furthest, add to left hull.
+            if find_side(point, line_start, furthest) == 2:
+                left_data.append(point)
+            elif find_side(point, furthest, line_end) == 2:
+                right_data.append(point)
+    convex_hull = convex_hull + mini_hull(line_start, furthest, left_data) + mini_hull(furthest, line_end, right_data)
+
+    return convex_hull
+
+
+def rel_distance(line_start, line_end, to_compare):
+    # Returns relative distance from the line made by line_start and line_end
+    x1, y1 = line_start[0], line_start[1]
+    x2, y2 = line_end[0], line_end[1]
+
+    # value = (x2 - x1)(to_compare[1] - y1) - (to_compare[0] - x1)(y2 - y1)
+    # FIXME: On to_compare = (0, 0), line_start = (15, 2), line_end = (0, 4) returns 0.
+    return abs((y2 - y1) * (to_compare[0] - x1)) - ((x2 - x1) * (to_compare[1] - y1))
+
+
+def sort_quick_hull(data_set):
+    # TODO: Sort data_set clockwise
+    convex_hull = []
+    return convex_hull
+
+
 def main():
     data_count = 150
     rand_min, rand_max = 0, 100000
-    data_set = list(gen_data(data_count, rand_min, rand_max))
+    # data_set = list(gen_data(data_count, rand_min, rand_max))
     # data_set = [(1, 2), (0, 4), (0, 0), (2, 2), (10, 10), (15, 2)]
-    # data_set = [(233, 148), (161, 100), (155, 39), (226, 109), (230, 133)]
+    data_set = [(233, 148), (161, 100), (155, 39), (226, 109), (230, 133)]
 
-    iterate_num = 10000
+    iterate_num = 10
     setup_code = '''
 from __main__ import brute_hull, gen_data
 data_count = 15
@@ -155,14 +246,17 @@ data_set = list(gen_data(data_count, rand_min, rand_max))
     # print("Brute hull time: {}".format(min(times)))
 
     convex_hull = gift_wrap(data_set)
-
-    # print(convex_hull)
+    convex_hull_quick = quickhull(data_set)
+    print("GIFTWRAP:", convex_hull)
 
     convex_hull = gen_gift_wrap_lines(convex_hull)
     # print(convex_hull)
-
+    print("PRE-SORT: ", convex_hull_quick)
+    convex_hull_quick = sort_quick_hull(convex_hull_quick)
+    print(convex_hull_quick)
+    convex_hull_quick = gen_gift_wrap_lines(convex_hull_quick)
     plt.scatter(*zip(*data_set))
-    for line in convex_hull:
+    for line in convex_hull_quick:
         plt.plot(*zip(*line), color="red")
     plt.show()
 
