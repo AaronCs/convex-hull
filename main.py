@@ -202,6 +202,20 @@ def rel_distance(line_start, line_end, to_compare):
     return abs((y2 - y1) * (to_compare[0] - x1) - ((x2 - x1) * (to_compare[1] - y1)))
 
 
+def sort_clockwise(data):
+    # Find center of shape.
+    x = [p[0] for p in data]
+    y = [p[1] for p in data]
+    # Contains array of tuples of (point, angle)
+    angles = []
+    centroid = (sum(x) / len(data), sum(y) / len(data))
+    for point in data:
+        angle = (math.atan2(point[1] - centroid[1], point[0] - centroid[0]))
+        angles.append((point, angle))
+    angles.sort(key=lambda x: x[1])
+    return [p[0] for p in angles]
+
+
 def gen_gift_wrap_lines(data):
     '''
 
@@ -221,11 +235,17 @@ def gen_gift_wrap_lines(data):
 
 
 def gen_quick_lines(data):
-    return data
+    fixed = []
+    data_len = len(data)
+    for i in range(0, data_len - 1, 2):
+        line = (data[i], data[i + 1])
+        fixed.append(line)
+    return fixed
 
 
 def compare_hulls(hull1, hull2):
     return Counter(hull1) == Counter(hull2)
+
 
 def main():
     data_count = 100
@@ -254,7 +274,8 @@ data_set = list(gen_data(data_count, rand_min, rand_max))
     # plt.scatter(*zip(*gift_hull), color='yellow')
     plt.scatter(*zip(*quick_hull), color='red')
     gift_hull = gen_gift_wrap_lines(gift_hull)
-    quick_hull = gen_quick_lines(quick_hull)
+    clockwise = sort_clockwise(quick_hull)
+    quick_hull = gen_gift_wrap_lines(clockwise)
     for line in quick_hull:
         plt.plot(*zip(*line), color="red")
     plt.show()
