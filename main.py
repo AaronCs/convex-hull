@@ -5,8 +5,27 @@
 
 from random import randint
 import matplotlib.pyplot as plt
+from collections import Counter
 import math
 import timeit
+
+def gen_data(num_points, minimum, maximum):
+    """
+    :return: randomly generates a point.
+    """
+    data_set = set()
+    x = randint(minimum, maximum)
+    y = randint(minimum, maximum)
+
+    while num_points:
+        data_set.add((x, y))
+        x = randint(minimum, maximum)
+        y = randint(minimum, maximum)
+        while (x, y) in data_set:
+            x = randint(minimum, maximum)
+            y = randint(minimum, maximum)
+        num_points -= 1
+    return data_set
 
 
 def brute_hull(data_set):
@@ -109,43 +128,6 @@ def find_rightmost(data_set):
     return rightmost
 
 
-def gen_data(num_points, minimum, maximum):
-    """
-    :return: randomly generates a point.
-    """
-    data_set = set()
-    x = randint(minimum, maximum)
-    y = randint(minimum, maximum)
-
-    while num_points:
-        data_set.add((x, y))
-        x = randint(minimum, maximum)
-        y = randint(minimum, maximum)
-        while (x, y) in data_set:
-            x = randint(minimum, maximum)
-            y = randint(minimum, maximum)
-        num_points -= 1
-    return data_set
-
-
-def gen_gift_wrap_lines(data):
-    '''
-
-    :param data: array of tuples [(x, y), . . .]
-    :return: array of tuples of tuples [[(x1, y1), (x2, y2)], . . .]
-    '''
-    fixed = []
-    data_len = len(data)
-    for i in range(0, data_len):
-        if i < data_len - 1:
-            line = (data[i], data[i + 1])
-        else:
-            # makes it connect back to the first point.
-            line = (data[i], data[0])
-        fixed.append(line)
-    return fixed
-
-
 def quickhull(data_set):
     convex_hull = []
     leftmost = find_leftmost(data_set)
@@ -163,10 +145,9 @@ def quickhull(data_set):
             if side == 2:
                 upper_hull.append(point)
 
-    print("UPPER: ", upper_hull)
-    print("LOWER: ", lower_hull)
-    # FIXME: Should lower hull be treated differently?
+    # FIXME: Upper is getting real messed up.
     convex_hull = convex_hull + mini_hull(leftmost, rightmost, upper_hull) + mini_hull(leftmost, rightmost, lower_hull)
+    # convex_hull = convex_hull + mini_hull(leftmost, rightmost, upper_hull)
 
     return convex_hull
 
@@ -218,22 +199,41 @@ def rel_distance(line_start, line_end, to_compare):
 
     # value = (x2 - x1)(to_compare[1] - y1) - (to_compare[0] - x1)(y2 - y1)
     # FIXME: On to_compare = (0, 0), line_start = (15, 2), line_end = (0, 4) returns 0.
-    return abs((y2 - y1) * (to_compare[0] - x1)) - ((x2 - x1) * (to_compare[1] - y1))
+    return abs((y2 - y1) * (to_compare[0] - x1) - ((x2 - x1) * (to_compare[1] - y1)))
 
 
-def sort_quick_hull(data_set):
-    # TODO: Sort data_set clockwise
-    convex_hull = []
-    return convex_hull
+def gen_gift_wrap_lines(data):
+    '''
 
+    :param data: array of tuples [(x, y), . . .]
+    :return: array of tuples of tuples [[(x1, y1), (x2, y2)], . . .]
+    '''
+    fixed = []
+    data_len = len(data)
+    for i in range(0, data_len):
+        if i < data_len - 1:
+            line = (data[i], data[i + 1])
+        else:
+            # makes it connect back to the first point.
+            line = (data[i], data[0])
+        fixed.append(line)
+    return fixed
+
+
+def gen_quick_lines(data):
+    return data
+
+
+def compare_hulls(hull1, hull2):
+    return Counter(hull1) == Counter(hull2)
 
 def main():
-    data_count = 150
-    rand_min, rand_max = 0, 100000
-    # data_set = list(gen_data(data_count, rand_min, rand_max))
+    data_count = 100
+    rand_min, rand_max = 0, 1000
+    data_set = list(gen_data(data_count, rand_min, rand_max))
     # data_set = [(1, 2), (0, 4), (0, 0), (2, 2), (10, 10), (15, 2)]
-    data_set = [(233, 148), (161, 100), (155, 39), (226, 109), (230, 133)]
-
+    # data_set = [(0, 1), (1, 2), (5, 4), (3, 2), (3, 0), (4, 4), (5, 2), (3, 1), (2, 1), (1, 5), (2, 3), (0, 4), (5, 3), (5, 0), (3, 4), (5, 1), (2, 5), (4, 1), (2, 4), (4, 0)]
+    plt.scatter(*zip(*data_set))
     iterate_num = 10
     setup_code = '''
 from __main__ import brute_hull, gen_data
@@ -245,18 +245,17 @@ data_set = list(gen_data(data_count, rand_min, rand_max))
     # times = timeit.repeat("brute_hull(data_set)", setup=setup_code, repeat=10, number=iterate_num)
     # print("Brute hull time: {}".format(min(times)))
 
-    convex_hull = gift_wrap(data_set)
-    convex_hull_quick = quickhull(data_set)
-    print("GIFTWRAP:", convex_hull)
+    gift_hull = gift_wrap(data_set)
 
-    convex_hull = gen_gift_wrap_lines(convex_hull)
-    # print(convex_hull)
-    print("PRE-SORT: ", convex_hull_quick)
-    convex_hull_quick = sort_quick_hull(convex_hull_quick)
-    print(convex_hull_quick)
-    convex_hull_quick = gen_gift_wrap_lines(convex_hull_quick)
-    plt.scatter(*zip(*data_set))
-    for line in convex_hull_quick:
+    quick_hull = quickhull(data_set)
+    if compare_hulls(gift_hull, quick_hull):
+        print("Same hulls created.")
+
+    # plt.scatter(*zip(*gift_hull), color='yellow')
+    plt.scatter(*zip(*quick_hull), color='red')
+    gift_hull = gen_gift_wrap_lines(gift_hull)
+    quick_hull = gen_quick_lines(quick_hull)
+    for line in quick_hull:
         plt.plot(*zip(*line), color="red")
     plt.show()
 
