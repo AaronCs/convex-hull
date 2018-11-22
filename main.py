@@ -72,7 +72,6 @@ def brute_hull(data_set):
 
 
 def gift_wrap(data_set):
-    # FIXME: Loops on certain points.
     convex_hull = []
 
     # Find leftmost point.
@@ -196,7 +195,6 @@ def rel_distance(line_start, line_end, to_compare):
     x2, y2 = line_end[0], line_end[1]
 
     # value = (x2 - x1)(to_compare[1] - y1) - (to_compare[0] - x1)(y2 - y1)
-    # FIXME: On to_compare = (0, 0), line_start = (15, 2), line_end = (0, 4) returns 0.
     return abs((y2 - y1) * (to_compare[0] - x1) - ((x2 - x1) * (to_compare[1] - y1)))
 
 
