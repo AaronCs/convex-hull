@@ -145,9 +145,7 @@ def quickhull(data_set):
             if side == 2:
                 upper_hull.append(point)
 
-    # FIXME: Upper is getting real messed up.
     convex_hull = convex_hull + mini_hull(leftmost, rightmost, upper_hull) + mini_hull(leftmost, rightmost, lower_hull)
-    # convex_hull = convex_hull + mini_hull(leftmost, rightmost, upper_hull)
 
     return convex_hull
 
@@ -212,7 +210,7 @@ def sort_clockwise(data):
     for point in data:
         angle = (math.atan2(point[1] - centroid[1], point[0] - centroid[0]))
         angles.append((point, angle))
-    angles.sort(key=lambda x: x[1])
+    angles.sort(key=lambda p: p[1])
     return [p[0] for p in angles]
 
 
