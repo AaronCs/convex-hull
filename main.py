@@ -6,8 +6,10 @@
 from random import randint
 import matplotlib.pyplot as plt
 from collections import Counter
+from scipy.spatial import ConvexHull as scipy_hull
 import math
 import timeit
+
 
 def gen_data(num_points, minimum, maximum):
     """
@@ -28,7 +30,7 @@ def gen_data(num_points, minimum, maximum):
     return data_set
 
 
-def brute_hull(data_set):
+def brutehull(data_set):
     """
 
     :param data_set: [(x, y), . . .]
@@ -40,32 +42,19 @@ def brute_hull(data_set):
     for p1 in data_set:
         for p2 in data_set[data_set.index(p1) + 1:]:
             if p2 != p1:
-                # ax + by = c
-                # c = x1y2 - x2y1
-
-                x1 = p1[0]
-                y1 = p1[1]
-
-                x2 = p2[0]
-                y2 = p2[1]
-
-                a = y2 - y1
-                b = x1 - x2
-                c = (x1 * y2) - (y1 * x2)
-                pos = 0
-                neg = 0
-
+                count = 0
+                one_side = True
                 for p3 in data_set:
                     if p3 != p1 and p3 != p2:
-                        # Check if ax+by-c has same sign for all points.
-                        lin_eq = (a * p3[0]) + (b * p3[1]) - c
-                        if lin_eq >= 0:
-                            pos += 1
-                        if lin_eq <= 0:
-                            neg += 1
+                        if count == 0:
+                            first_side = find_side(p3, p1, p2)
+                            count += 1
+                        else:
+                            # Check if ax+by-c has same sign for all points.
+                            if find_side(p3, p1, p2) != first_side:
+                                one_side = False
 
-                # -2 b/c we ignore the points made by the line.
-                if pos == (len(data_set) - 2) or neg == (len(data_set) - 2):
+                if one_side:
                     to_append = (p1, p2)
                     convex_hull.append(to_append)
     return convex_hull
@@ -239,42 +228,71 @@ def gen_quick_lines(data):
     return fixed
 
 
-def compare_hulls(hull1, hull2):
-    return Counter(hull1) == Counter(hull2)
+def compare_hulls(hull1, hull2, hull3):
+    hull1_counter = Counter(hull1)
+    if hull1_counter == Counter(hull2) :
+        return hull1_counter == Counter(hull3)
+
+
+def time_hulls(data_set):
+    times = []
+
+    iterate_num = 4
+    # Do 10 -> 100 -> 1000 -> 10000
+    setup_code = f'''
+from __main__ import gift_wrap, quickhull, brutehull
+from scipy.spatial import ConvexHull as scipy_hull
+data_set = {data_set}
+    '''
+
+    '''
+    test_hull = scipy_hull(data_set)
+    gift_hull = gift_wrap(data_set)
+    quick_hull = quickhull(data_set)
+    brute_hull = brutehull(data_set)
+
+    if compare_hulls(gift_hull, quick_hull, brute_hull):
+        print("Same hulls created.")
+    '''
+
+    times.append(timeit.timeit("scipy_hull(data_set)", setup=setup_code, number=iterate_num) / iterate_num)
+    times.append(timeit.timeit("gift_wrap(data_set)", setup=setup_code, number=iterate_num) / iterate_num)
+    times.append(timeit.timeit("quickhull(data_set)", setup=setup_code, number=iterate_num) / iterate_num)
+    times.append(timeit.timeit("brutehull(data_set)", setup=setup_code, number=iterate_num) / iterate_num)
+
+    return times
+
+
+def draw_convex_hull(hull, type):
+    hull_types = {"gift_wrap": 0, "quick_hull": 1, "brute_hull": 2}
+    type_hull = hull_types[type]
+    if type_hull == 0:
+        hull = gen_gift_wrap_lines(hull)
+    if type_hull == 1:
+        hull = gen_gift_wrap_lines(sort_clockwise(hull))
+
+    for line in hull:
+        plt.plot(*zip(*line), color="red")
 
 
 def main():
-    data_count = 100
+    data_count = 200
     rand_min, rand_max = 0, 1000
     data_set = list(gen_data(data_count, rand_min, rand_max))
-    # data_set = [(1, 2), (0, 4), (0, 0), (2, 2), (10, 10), (15, 2)]
-    # data_set = [(0, 1), (1, 2), (5, 4), (3, 2), (3, 0), (4, 4), (5, 2), (3, 1), (2, 1), (1, 5), (2, 3), (0, 4), (5, 3), (5, 0), (3, 4), (5, 1), (2, 5), (4, 1), (2, 4), (4, 0)]
+    # data_set = [(20, 45), (13, 34), (96, 26), (83, 45), (29, 83), (42, 12), (71, 71), (17, 33), (16, 97), (77, 81), (84, 71), (79, 6), (0, 42), (7, 74), (99, 80), (3, 48), (23, 47), (73, 36), (58, 70), (85, 11)]
     plt.scatter(*zip(*data_set))
-    iterate_num = 10
-    setup_code = '''
-from __main__ import brute_hull, gen_data
-data_count = 15
-rand_min, rand_max = 0, 250
-data_set = list(gen_data(data_count, rand_min, rand_max))
+
+
+    # print("Brute hull time: {}".format(times))
+    hull_names = ["scipy", "gift_wrap", "quickhull", "brutehull"]
+    times = time_hulls(data_set)
+    for x in range(len(times)):
+        print(hull_names[x], ":", times[x])
     '''
-
-    # times = timeit.repeat("brute_hull(data_set)", setup=setup_code, repeat=10, number=iterate_num)
-    # print("Brute hull time: {}".format(min(times)))
-
-    gift_hull = gift_wrap(data_set)
-
-    quick_hull = quickhull(data_set)
-    if compare_hulls(gift_hull, quick_hull):
-        print("Same hulls created.")
-
-    # plt.scatter(*zip(*gift_hull), color='yellow')
-    plt.scatter(*zip(*quick_hull), color='red')
-    gift_hull = gen_gift_wrap_lines(gift_hull)
-    clockwise = sort_clockwise(quick_hull)
-    quick_hull = gen_gift_wrap_lines(clockwise)
-    for line in quick_hull:
-        plt.plot(*zip(*line), color="red")
+    hull = brutehull(data_set)
+    draw_convex_hull(hull, "brute_hull")
     plt.show()
+    '''
 
 
 if __name__ == "__main__":
