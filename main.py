@@ -9,6 +9,9 @@ from collections import Counter
 from scipy.spatial import ConvexHull as scipy_hull
 import math
 import timeit
+import csv
+import os
+import multiprocessing
 
 
 def gen_data(num_points, minimum, maximum):
@@ -234,10 +237,9 @@ def compare_hulls(hull1, hull2, hull3):
         return hull1_counter == Counter(hull3)
 
 
-def time_hulls(data_set):
-    times = []
-
+def time_hull(data_set, timeit_string, result, i):
     iterate_num = 4
+
     # Do 10 -> 100 -> 1000 -> 10000
     setup_code = f'''
 from __main__ import gift_wrap, quickhull, brutehull
@@ -245,22 +247,7 @@ from scipy.spatial import ConvexHull as scipy_hull
 data_set = {data_set}
     '''
 
-    '''
-    test_hull = scipy_hull(data_set)
-    gift_hull = gift_wrap(data_set)
-    quick_hull = quickhull(data_set)
-    brute_hull = brutehull(data_set)
-
-    if compare_hulls(gift_hull, quick_hull, brute_hull):
-        print("Same hulls created.")
-    '''
-
-    times.append(timeit.timeit("scipy_hull(data_set)", setup=setup_code, number=iterate_num) / iterate_num)
-    times.append(timeit.timeit("gift_wrap(data_set)", setup=setup_code, number=iterate_num) / iterate_num)
-    times.append(timeit.timeit("quickhull(data_set)", setup=setup_code, number=iterate_num) / iterate_num)
-    times.append(timeit.timeit("brutehull(data_set)", setup=setup_code, number=iterate_num) / iterate_num)
-
-    return times
+    result[i] = timeit.timeit(timeit_string, setup=setup_code, number=iterate_num) / iterate_num
 
 
 def draw_convex_hull(hull, type):
@@ -275,19 +262,49 @@ def draw_convex_hull(hull, type):
         plt.plot(*zip(*line), color="red")
 
 
+def write_to_csv(data, data_count, filename, i):
+    hull_names = ["scipy", "gift_wrap", "quickhull", "brutehull"]
+    with open(filename, mode="a") as csv_file:
+        data_writer = csv.writer(csv_file, delimiter=',')
+        # Super janky but whatever.
+        if i == 0:
+            data_writer.writerow(["Data Count:"] + hull_names)
+        data_writer.writerow([data_count] + data[:])
+
+
 def main():
-    data_count = 200
-    rand_min, rand_max = 0, 1000
-    data_set = list(gen_data(data_count, rand_min, rand_max))
-    # data_set = [(20, 45), (13, 34), (96, 26), (83, 45), (29, 83), (42, 12), (71, 71), (17, 33), (16, 97), (77, 81), (84, 71), (79, 6), (0, 42), (7, 74), (99, 80), (3, 48), (23, 47), (73, 36), (58, 70), (85, 11)]
-    plt.scatter(*zip(*data_set))
+    csv_filename = "./output/results.csv"
+    timeit_strings = ["scipy_hull(data_set)", "gift_wrap(data_set)", "quickhull(data_set)", "brutehull(data_set)"]
+    if os.path.isfile(csv_filename):
+        os.remove(csv_filename)
+    else:
+        print("CSV DELETION ERROR")
+    data_count = [10, 100, 1000]
+    rand_min, rand_max = 0, [50, 500, 5000]
+
+    # data_count = [10, 100, 1000, 10000, 100000]
+    # rand_min, rand_max = 0, [50, 500, 5000, 50000, 500000]
+
+    for count in range(len(data_count)):
+        results = multiprocessing.Array("d", [-1] * len(timeit_strings))
+        data_set = list(gen_data(data_count[count], rand_min, rand_max[count]))
+        for string in timeit_strings:
+            p = multiprocessing.Process(target=time_hull, name="time_hull", args=(data_set, string,
+                                                                                  results, timeit_strings.index(string)))
+            p.start()
+            # If it takes longer than 60 seconds for the function to run, terminate it.
+            p.join(60)
+            if p.is_alive():
+                print("Killing process. {0} for {1} is taking too long.".format(string, data_count[count]))
+                p.terminate()
+                p.join()
+        write_to_csv(results, data_count[count], csv_filename, count)
+    # Data sets to test: Random, Circle, Star?, Parallel lines?
+    # plt.scatter(*zip(*data_set))
 
 
     # print("Brute hull time: {}".format(times))
-    hull_names = ["scipy", "gift_wrap", "quickhull", "brutehull"]
-    times = time_hulls(data_set)
-    for x in range(len(times)):
-        print(hull_names[x], ":", times[x])
+    # hull_names = ["scipy", "gift_wrap", "quickhull", "brutehull"]
     '''
     hull = brutehull(data_set)
     draw_convex_hull(hull, "brute_hull")
