@@ -279,11 +279,11 @@ def main():
         os.remove(csv_filename)
     else:
         print("CSV DELETION ERROR")
-    data_count = [10, 100, 1000]
-    rand_min, rand_max = 0, [50, 500, 5000]
+    #data_count = [10, 100, 1000]
+    #rand_min, rand_max = 0, [50, 500, 5000]
 
-    # data_count = [10, 100, 1000, 10000, 100000]
-    # rand_min, rand_max = 0, [50, 500, 5000, 50000, 500000]
+    data_count = [10, 100, 1000, 10000, 100000]
+    rand_min, rand_max = 0, [50, 500, 5000, 50000, 500000]
 
     for count in range(len(data_count)):
         results = multiprocessing.Array("d", [-1] * len(timeit_strings))
@@ -292,8 +292,8 @@ def main():
             p = multiprocessing.Process(target=time_hull, name="time_hull", args=(data_set, string,
                                                                                   results, timeit_strings.index(string)))
             p.start()
-            # If it takes longer than 60 seconds for the function to run, terminate it.
-            p.join(60)
+            # If it takes longer than 10 seconds for the function to run, terminate it.
+            p.join(30)
             if p.is_alive():
                 print("Killing process. {0} for {1} is taking too long.".format(string, data_count[count]))
                 p.terminate()
