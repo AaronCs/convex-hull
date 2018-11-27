@@ -241,11 +241,11 @@ def time_hull(data_set, timeit_string, result, i):
     iterate_num = 4
 
     # Do 10 -> 100 -> 1000 -> 10000
-    setup_code = f'''
+    setup_code = '''
 from __main__ import gift_wrap, quickhull, brutehull
 from scipy.spatial import ConvexHull as scipy_hull
-data_set = {data_set}
-    '''
+data_set = {0}
+    '''.format(data_set)
 
     result[i] = timeit.timeit(timeit_string, setup=setup_code, number=iterate_num) / iterate_num
 
@@ -272,6 +272,10 @@ def write_to_csv(data, data_count, filename, i):
         data_writer.writerow([data_count] + data[:])
 
 
+def create_circle_data(r, n=100):
+    return [(math.cos(2 * math.pi / n * x) * r, math.sin(2 * math.pi / n * x) * r) for x in range(0, n + 1)]
+
+
 def main():
     csv_filename = "./output/results.csv"
     timeit_strings = ["scipy_hull(data_set)", "gift_wrap(data_set)", "quickhull(data_set)", "brutehull(data_set)"]
@@ -279,8 +283,8 @@ def main():
         os.remove(csv_filename)
     else:
         print("CSV DELETION ERROR")
-    #data_count = [10, 100, 1000]
-    #rand_min, rand_max = 0, [50, 500, 5000]
+    # data_count = [10, 100, 1000]
+    # rand_min, rand_max = 0, [50, 500, 5000]
 
     data_count = [10, 100, 1000, 10000, 100000]
     rand_min, rand_max = 0, [50, 500, 5000, 50000, 500000]
@@ -303,11 +307,11 @@ def main():
     # plt.scatter(*zip(*data_set))
 
 
+    '''
     # print("Brute hull time: {}".format(times))
     # hull_names = ["scipy", "gift_wrap", "quickhull", "brutehull"]
-    '''
-    hull = brutehull(data_set)
-    draw_convex_hull(hull, "brute_hull")
+    # hull = brutehull(data_set)
+    # draw_convex_hull(hull, "brute_hull")
     plt.show()
     '''
 
