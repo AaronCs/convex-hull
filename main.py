@@ -33,6 +33,19 @@ def gen_data(num_points, minimum, maximum):
     return data_set
 
 
+def gen_sparse_random(data_set, min_mult, max_mult):
+    # Basically double everything.
+    new_set = []
+    for point in data_set:
+        new_point_x = (point[0]) * randint(min_mult, max_mult)
+        new_point_y = (point[1]) * randint(min_mult, max_mult)
+        # Appends a tuple (x, y)
+        new_point = (new_point_x, new_point_y)
+        new_set.append(new_point)
+    return new_set
+
+
+
 def brutehull(data_set):
     """
 
@@ -262,12 +275,13 @@ def draw_convex_hull(hull, type):
         plt.plot(*zip(*line), color="red")
 
 
-def write_to_csv(data, data_count, filename, i):
+def write_to_csv(data, data_count, filename, i, data_set_type):
     hull_names = ["scipy", "gift_wrap", "quickhull", "brutehull"]
     with open(filename, mode="a") as csv_file:
         data_writer = csv.writer(csv_file, delimiter=',')
         # Super janky but whatever.
         if i == 0:
+            data_writer.writerow(["Data Set: ", data_set_type])
             data_writer.writerow(["Data Count:"] + hull_names)
         data_writer.writerow([data_count] + data[:])
 
@@ -276,9 +290,22 @@ def create_circle_data(r, n=100):
     return [(math.cos(2 * math.pi / n * x) * r, math.sin(2 * math.pi / n * x) * r) for x in range(0, n + 1)]
 
 
+def pick_data_set(set_type, data_count, rand_min, rand_max):
+    data_set = []
+    if set_type == 0:
+        data_set = list(gen_data(data_count, rand_min, rand_max))
+    if set_type == 1:
+        data_set = list(gen_data(data_count, rand_min, rand_max))
+        data_set = gen_sparse_random(data_set, 1, 3)
+    else:
+        data_set = create_circle_data(data_count, data_count)
+    return data_set
+
+
 def main():
-    csv_filename = "./output/results.csv"
     timeit_strings = ["scipy_hull(data_set)", "gift_wrap(data_set)", "quickhull(data_set)", "brutehull(data_set)"]
+    data_set_types = ["random", "random-sparse", "circular"]
+    csv_filename = "./output/results.csv"
     if os.path.isfile(csv_filename):
         os.remove(csv_filename)
     else:
@@ -288,31 +315,36 @@ def main():
 
     data_count = [10, 100, 1000, 10000, 100000]
     rand_min, rand_max = 0, [50, 500, 5000, 50000, 500000]
-
-    for count in range(len(data_count)):
-        results = multiprocessing.Array("d", [-1] * len(timeit_strings))
-        data_set = list(gen_data(data_count[count], rand_min, rand_max[count]))
-        for string in timeit_strings:
-            p = multiprocessing.Process(target=time_hull, name="time_hull", args=(data_set, string,
-                                                                                  results, timeit_strings.index(string)))
-            p.start()
-            # If it takes longer than 10 seconds for the function to run, terminate it.
-            p.join(30)
-            if p.is_alive():
-                print("Killing process. {0} for {1} is taking too long.".format(string, data_count[count]))
-                p.terminate()
-                p.join()
-        write_to_csv(results, data_count[count], csv_filename, count)
+    # Most outer loop is for data set type: 0 is random, 1 is sparse, 2 is circle.
+    for x in range(3):
+        for count in range(len(data_count)):
+            results = multiprocessing.Array("d", [-1] * len(timeit_strings))
+            data_set = pick_data_set(x, data_count[count], rand_min, rand_max[count])
+            for string in timeit_strings:
+                p = multiprocessing.Process(target=time_hull, name="time_hull", args=(data_set, string,
+                                                                                      results, timeit_strings.index(string)))
+                p.start()
+                # If it takes longer than 30 seconds for the function to run, terminate it.
+                p.join(30)
+                if p.is_alive():
+                    print("Killing process. {0} for {1} is taking too long.".format(string, data_count[count]))
+                    p.terminate()
+                    p.join()
+            write_to_csv(results, data_count[count], csv_filename, count, data_set_types[x])
     # Data sets to test: Random, Circle, Star?, Parallel lines?
     # plt.scatter(*zip(*data_set))
 
-
     '''
+    # Stuff to draw data sets
+    data_set_circular = create_circle_data(100, 100)
+    plt.scatter(*zip(*data_set), color="red")
+    plt.scatter(*zip(*data_set_sparse), color="blue")
+    plt.scatter(*zip(*data_set_circular), color="purple")
+    plt.show()
     # print("Brute hull time: {}".format(times))
     # hull_names = ["scipy", "gift_wrap", "quickhull", "brutehull"]
     # hull = brutehull(data_set)
     # draw_convex_hull(hull, "brute_hull")
-    plt.show()
     '''
 
 
